@@ -1,0 +1,35 @@
+## --- 编译输出 (Build Output) ---
+[Bb]in/
+[Oo]bj/
+[Gg]enerated/
+
+## --- 临时文件与缓存 (Temp & Cache) ---
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.sln.docstates
+.vsconfig
+
+## --- NuGet 软件包 (NuGet Packages) ---
+*.nupkg
+# 如果你不使用项目文件内的恢复模式，可以取消注释下面这行
+# packages/
+
+## --- 发布输出 (Publish Output) ---
+*.psess
+*.vsp
+*.vspx
+*.sap
+*.exe
+*.dll
+*.pdb
+
+## --- 操作系统临时文件 ---
+.DS_Store
+Thumbs.db
+
+## --- 环境配置文件 (敏感信息) ---
+appsettings.Development.json
+*.env
+xiaohei/appsettings.json

@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+      <UserSecretsId>abacf677-ea2d-4f66-a2bc-64134481cafe</UserSecretsId>
+      <NoWarn>SKEXP0110</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="5.0.0" />
+      <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.1" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.1" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.1" />
+      <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.1" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.1" />
+      <PackageReference Include="Microsoft.SemanticKernel" Version="1.68.0" />
+      <PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.68.0" />
+          <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" Version="1.68.0" />
+          </ItemGroup>
+
+          <ItemGroup>
+            <Folder Include="FunctionTest\" />
+          </ItemGroup>
+
+          <!-- Copy appsettings.json to output directory -->
+          <ItemGroup>
+            <None Update="Scripts\appsettings.json">
+              <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            </None>
+          </ItemGroup>
+
+        </Project>
