@@ -18,38 +18,87 @@ namespace xiaohei.Scripts
     public class SingleAgentOrchestrator
     {
         private readonly IConfiguration _config;
-                                        private const string SYSTEM_PROMPT = @"You are a professional code generator and technical assistant running on Windows 11.
+                                                                                                                                                                                                                                                                                                                                private const string SYSTEM_PROMPT = @"你是一个运行在Windows 11上的AI代码助手，具备代码执行能力。
 
-                                IMPORTANT SYSTEM INFORMATION:
-                                ═══════════════════════════════════════════════════════════
-                                Runtime Environment: Windows 11
-                                Language: C# (.NET 10)
-                                Execution Context: You write C# code that runs locally on Windows 11
-                                ═══════════════════════════════════════════════════════════
+                                                                                                                                                                                                                                                系统信息：
+                                                                                                                                                                                                                                                - 操作系统：Windows 11
+                                                                                                                                                                                                                                                - 运行时：.NET 10
+                                                                                                                                                                                                                                                - 你拥有7个代码管理函数
 
-                                Your responsibilities:
-                                1. Generate clean, working C# code based on requirements
-                                2. Provide explanations for your code
-                                3. Follow best practices and standards
-                                4. Handle errors gracefully
-                                5. Optimize for readability and performance
+                                                                                                                                                                                                                                                关键指示：
 
-                                CRITICAL INSTRUCTION:
-                                When the user asks for an action (e.g., ""Open a website"", ""Create a file"", ""Calculate this""), you MUST NOT just explain how to do it.
-                                You MUST write the C# code to perform the action and EXECUTE it using the provided tools (`save_code` and `run_code`).
-                                You are an AGENT, not just a chat bot. You have the power to execute code on the user's machine. USE IT.
+                                                                                                                                                                                                                                                当用户请求任何操作时：
+                                                                                                                                                                                                                                                1. 你必须编写C#代码来完成它
+                                                                                                                                                                                                                                                2. 使用save_code()保存你的代码
+                                                                                                                                                                                                                                                3. 使用run_code()执行你的代码
+                                                                                                                                                                                                                                                4. 将结果返回给用户
 
-                                When writing code:
-                                - Use clear variable names
-                                - Add comments for complex logic
-                                - Handle edge cases
-                                - Follow the C# conventions
-                                - Provide usage examples if needed
-                                - Remember you're writing for Windows 11 environment
+                                                                                                                                                                                                                                                你不能拒绝或说你做不了某事。
+                                                                                                                                                                                                                                                你必须编写代码来完成请求。
 
-                                You have access to code management functions that are automatically provided to you.
-                                These functions allow you to save, run, test, and manage code snippets.
-                                Always strive to produce production-quality code.";
+                                                                                                                                                                                                                                                可用函数：
+                                                                                                                                                                                                                                                1. save_code(name, code) - 保存C#代码
+                                                                                                                                                                                                                                                2. run_code(codeOrName) - 执行代码
+                                                                                                                                                                                                                                                3. test_code(code) - 测试编译
+                                                                                                                                                                                                                                                4. list_codes() - 列出代码
+                                                                                                                                                                                                                                                5. get_code(name) - 获取代码
+                                                                                                                                                                                                                                                6. update_code(name, newCode) - 更新代码
+                                                                                                                                                                                                                                                7. delete_code(name) - 删除代码
+
+                                                                                                                                                                                                                                                代码风格规则：
+
+                                                                                                                                                                                                                                                正确 - 使用顶级语句：
+                                                                                                                                                                                                                                                using System.Diagnostics;
+                                                                                                                                                                                                                                                Process.Start(new ProcessStartInfo { FileName = ""https://www.bilibili.com"", UseShellExecute = true });
+                                                                                                                                                                                                                                                return ""网页已打开"";
+
+                                                                                                                                                                                                                                                错误 - 永远不要使用入口点：
+                                                                                                                                                                                                                                                class Program { static void Main() { } }
+                                                                                                                                                                                                                                                static void MyMethod() { }
+
+                                                                                                                                                                                                                                                你可以在代码中做的事情：
+
+                                                                                                                                                                                                                                                打开网页：
+                                                                                                                                                                                                                                                  using System.Diagnostics;
+                                                                                                                                                                                                                                                  Process.Start(new ProcessStartInfo { FileName = ""url"", UseShellExecute = true });
+
+                                                                                                                                                                                                                                                创建文件：
+                                                                                                                                                                                                                                                  using System.IO;
+                                                                                                                                                                                                                                                  File.WriteAllText(@""C:\path\file.txt"", ""content"");
+
+                                                                                                                                                                                                                                                读取文件：
+                                                                                                                                                                                                                                                  using System.IO;
+                                                                                                                                                                                                                                                  var content = File.ReadAllText(@""C:\path\file.txt"");
+                                                                                                                                                                                                                                                  return content;
+
+                                                                                                                                                                                                                                                运行命令：
+                                                                                                                                                                                                                                                  using System.Diagnostics;
+                                                                                                                                                                                                                                                  var p = Process.Start(""cmd.exe"", ""/c dir"");
+                                                                                                                                                                                                                                                  p.WaitForExit();
+
+                                                                                                                                                                                                                                                计算：
+                                                                                                                                                                                                                                                  var result = Enumerable.Range(1, 100).Sum();
+                                                                                                                                                                                                                                                  return result.ToString();
+
+                                                                                                                                                                                                                                                你的工作流程：
+
+                                                                                                                                                                                                                                                步骤1：用户给你一个请求
+                                                                                                                                                                                                                                                步骤2：编写C#代码来做它
+                                                                                                                                                                                                                                                步骤3：保存代码：save_code('描述性名称', your_code)
+                                                                                                                                                                                                                                                步骤4：运行代码：run_code('描述性名称')
+                                                                                                                                                                                                                                                步骤5：把结果显示给用户
+
+                                                                                                                                                                                                                                                记住：
+                                                                                                                                                                                                                                                - 仅使用顶级语句
+                                                                                                                                                                                                                                                - 无class定义
+                                                                                                                                                                                                                                                - 无static方法
+                                                                                                                                                                                                                                                - 代码立即执行
+                                                                                                                                                                                                                                                - 使用System.IO处理文件
+                                                                                                                                                                                                                                                - 使用System.Diagnostics处理进程
+                                                                                                                                                                                                                                                - 完整访问.NET 10 API
+
+                                                                                                                                                                                                                                                你是一个代码生成器。生成并执行代码。
+                                                                                                                                                                                                                                                不要仅仅解释能做什么 - 去做它！";
 
         public SingleAgentOrchestrator()
         {
@@ -237,29 +286,36 @@ namespace xiaohei.Scripts
                     Console.ResetColor();
 
                     var chatService = agent.Kernel.GetRequiredService<IChatCompletionService>();
-                    var results = await chatService.GetChatMessageContentsAsync(
+
+                    // 用来拼接完整的回复，以便存入历史记录
+                    var fullResponse = new StringBuilder();
+
+                    // === 关键修改开始：使用 await foreach 循环 ===
+                    // 注意：不要在前面加 var results = await ...
+                    await foreach (var update in chatService.GetStreamingChatMessageContentsAsync(
                         history,
                         new OpenAIPromptExecutionSettings
                         {
                             Temperature = 0.7,
                             ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
                         },
-                        agent.Kernel);
-
-                    var response = new StringBuilder();
-                    foreach (var result in results)
+                        agent.Kernel))
                     {
-                        if (!string.IsNullOrEmpty(result.Content))
+                        // 实时打印每一个片段
+                        if (!string.IsNullOrEmpty(update.Content))
                         {
-                            Console.Write(result.Content);
-                            response.Append(result.Content);
+                            Console.Write(update.Content);
+                            fullResponse.Append(update.Content);
                         }
                     }
+                    // === 关键修改结束 ===
 
                     Console.WriteLine("\n");
-                    if (response.Length > 0)
+
+                    // 将完整回复存入历史，否则下一轮对话 AI 会“失忆”
+                    if (fullResponse.Length > 0)
                     {
-                        history.AddAssistantMessage(response.ToString());
+                        history.AddAssistantMessage(fullResponse.ToString());
                     }
                 }
                 catch (Exception ex)

@@ -28,7 +28,7 @@
 
           <!-- Copy appsettings.json to output directory -->
           <ItemGroup>
-            <None Update="Scripts\appsettings.json">
+            <None Update="Scripts\appsettings.json" Link="appsettings.json">
               <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </None>
           </ItemGroup>

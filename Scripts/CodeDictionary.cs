@@ -141,11 +141,33 @@ namespace xiaohei.Scripts
         private Compilation CreateCompilation(string code)
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(code);
+
+            // Add all necessary .NET 10 assemblies for proper compilation
             var references = new[]
             {
+                // Core runtime
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+
+                // System (includes basics like Uri, etc.)
+                MetadataReference.CreateFromFile(typeof(System.Uri).Assembly.Location),
+
+                // LINQ support
                 MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(Console).Assembly.Location)
+
+                // Console I/O
+                MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
+
+                // System.Diagnostics (for Process, File operations, etc.)
+                MetadataReference.CreateFromFile(typeof(System.Diagnostics.Process).Assembly.Location),
+
+                // System.IO (for File operations)
+                MetadataReference.CreateFromFile(typeof(System.IO.File).Assembly.Location),
+
+                // System.Collections
+                MetadataReference.CreateFromFile(typeof(System.Collections.Generic.List<>).Assembly.Location),
+
+                // System.Linq.Expressions (for advanced LINQ scenarios)
+                MetadataReference.CreateFromFile(typeof(System.Linq.Expressions.Expression).Assembly.Location),
             };
 
             var compilation = CSharpCompilation.Create("DynamicCode")
