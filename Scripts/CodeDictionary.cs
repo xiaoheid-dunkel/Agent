@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.Scripting;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -16,6 +17,7 @@ namespace xiaohei.Scripts
     public class CodeDictionary
     {
         private readonly Dictionary<string, CodeEntry> _codes = new();
+        private readonly string _savePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SavedScripts");
 
         private class CodeEntry
         {
@@ -23,6 +25,64 @@ namespace xiaohei.Scripts
             public object? CompiledDelegate { get; set; }
             public DateTime SavedAt { get; set; }
             public int ExecutionCount { get; set; }
+            public string Description { get; set; } = "";
+        }
+
+        public CodeDictionary()
+        {
+            if (!Directory.Exists(_savePath))
+            {
+                Directory.CreateDirectory(_savePath);
+            }
+            LoadFromDisk();
+        }
+
+        private void LoadFromDisk()
+        {
+            var files = Directory.GetFiles(_savePath, "*.cs");
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"[System] Found {files.Length} saved scripts. Loading...");
+
+            foreach (var file in files)
+            {
+                try
+                {
+                    string name = Path.GetFileNameWithoutExtension(file);
+                    string code = File.ReadAllText(file);
+                    string description = ExtractDescription(code);
+
+                    _codes[name] = new CodeEntry
+                    {
+                        Code = code,
+                        SavedAt = File.GetLastWriteTime(file),
+                        ExecutionCount = 0,
+                        Description = description
+                    };
+                    Console.WriteLine($"  + Loaded: {name} ({description})");
+                }
+                catch (Exception ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"  ! Failed to load {file}: {ex.Message}");
+                }
+            }
+            Console.ResetColor();
+            Console.WriteLine();
+        }
+
+        private string ExtractDescription(string code)
+        {
+            if (string.IsNullOrWhiteSpace(code)) return "No description";
+
+            using (var reader = new StringReader(code))
+            {
+                string? firstLine = reader.ReadLine()?.Trim();
+                if (firstLine != null && firstLine.StartsWith("//"))
+                {
+                    return firstLine.TrimStart('/', ' ').Trim();
+                }
+            }
+            return "No function description";
         }
 
         /// <summary>
@@ -38,12 +98,17 @@ namespace xiaohei.Scripts
 
             ValidateCode(code);
 
+            string description = ExtractDescription(code);
             _codes[name] = new CodeEntry
             {
                 Code = code,
                 SavedAt = DateTime.Now,
-                ExecutionCount = 0
+                ExecutionCount = 0,
+                Description = description
             };
+
+            string filePath = Path.Combine(_savePath, $"{name}.cs");
+            File.WriteAllText(filePath, code);
         }
 
         /// <summary>
@@ -77,7 +142,13 @@ namespace xiaohei.Scripts
 
             ValidateCode(newCode);
 
+            string description = ExtractDescription(newCode);
             _codes[name].Code = newCode;
+            _codes[name].Description = description;
+            _codes[name].SavedAt = DateTime.Now;
+
+            string filePath = Path.Combine(_savePath, $"{name}.cs");
+            File.WriteAllText(filePath, newCode);
         }
 
         /// <summary>
@@ -87,6 +158,12 @@ namespace xiaohei.Scripts
         {
             if (!_codes.Remove(name))
                 throw new KeyNotFoundException($"Code '{name}' not found");
+
+            string filePath = Path.Combine(_savePath, $"{name}.cs");
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
         }
 
         /// <summary>
@@ -116,12 +193,28 @@ namespace xiaohei.Scripts
                         errorMessages.AppendLine();
                     }
 
+                    // Print errors to console
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine(errorMessages.ToString());
+                    Console.ResetColor();
+
                     throw new InvalidOperationException(errorMessages.ToString());
                 }
 
                 if (warnings.Count > 0)
                 {
-                    return $"? Code compiled successfully with {warnings.Count} warning(s)";
+                    var warningMsg = $"? Code compiled successfully with {warnings.Count} warning(s)";
+
+                    // Print warnings to console
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine(warningMsg);
+                    foreach (var warning in warnings)
+                    {
+                        Console.WriteLine($"  Warning: {warning.GetMessage()}");
+                    }
+                    Console.ResetColor();
+
+                    return warningMsg;
                 }
 
                 return "? Code is valid and compiles successfully";
@@ -186,6 +279,7 @@ namespace xiaohei.Scripts
             if (!_codes.TryGetValue(name, out var entry))
                 throw new KeyNotFoundException($"Code '{name}' not found");
 
+            entry.ExecutionCount++;
             return ExecuteCode(entry.Code);
         }
 
@@ -309,50 +403,62 @@ namespace xiaohei.Scripts
         /// </summary>
         public string GetAvailableFunctions()
         {
-            var functions = new List<string>
-            {
-                "Available Code Management Functions:",
-                "",
-                "1. save_code(name, code)",
-                "   - Save C# code with a unique name",
-                "   - Code is immediately compiled and validated",
-                "   - Use this to store important code snippets for reuse",
-                "",
-                "2. run_code(nameOrCode)",
-                "   - Execute code by name (if saved) or directly",
-                "   - Returns execution result with timing info",
-                "   - Has 30-second timeout for safety",
-                "",
-                "3. list_codes()",
-                "   - Show all currently saved code snippets",
-                "   - Displays the names only",
-                "",
-                "4. get_code(name)",
-                "   - Retrieve the full source code of a saved snippet",
-                "   - Useful for reviewing or modifying code",
-                "",
-                "5. update_code(name, newCode)",
-                "   - Modify existing saved code",
-                "   - New code is immediately compiled",
-                "   - Use when you want to improve or fix existing code",
-                "",
-                "6. delete_code(name)",
-                "   - Remove a saved code snippet",
-                "   - Permanently deletes from this session",
-                "",
-                "7. test_code(code)",
-                "   - Validate if code compiles without running it",
-                "   - Use before saving to catch syntax errors early",
-                "",
-                "WORKFLOW TIPS:",
-                "- Always test_code() first to catch syntax errors",
-                "- Then save_code() to store the code",
-                "- Use run_code() to execute and verify results",
-                "- Use update_code() to improve or fix code",
-                "- Use list_codes() to see what you have"
-            };
+            var sb = new StringBuilder();
+            sb.AppendLine("System Loaded Custom Functions (Saved Functions):");
 
-            return string.Join("\n", functions);
+            if (_codes.Count == 0)
+            {
+                sb.AppendLine("  (No saved scripts)");
+            }
+            else
+            {
+                foreach (var kvp in _codes)
+                {
+                    sb.AppendLine($"  - {kvp.Key}: {kvp.Value.Description}");
+                }
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("Available Code Management Functions (System Tools):");
+            sb.AppendLine("1. save_code(name, code)");
+            sb.AppendLine("   - Save C# code with a unique name");
+            sb.AppendLine("   - Code is immediately compiled and validated");
+            sb.AppendLine("   - IMPORTANT: First line of code MUST be a // comment describing the function");
+            sb.AppendLine("");
+            sb.AppendLine("2. run_code(nameOrCode)");
+            sb.AppendLine("   - Execute code by name (if saved) or directly");
+            sb.AppendLine("   - Returns execution result with timing info");
+            sb.AppendLine("   - Has 30-second timeout for safety");
+            sb.AppendLine("");
+            sb.AppendLine("3. list_codes()");
+            sb.AppendLine("   - Show all currently saved code snippets");
+            sb.AppendLine("   - Displays the names only");
+            sb.AppendLine("");
+            sb.AppendLine("4. get_code(name)");
+            sb.AppendLine("   - Retrieve the full source code of a saved snippet");
+            sb.AppendLine("   - Useful for reviewing or modifying code");
+            sb.AppendLine("");
+            sb.AppendLine("5. update_code(name, newCode)");
+            sb.AppendLine("   - Modify existing saved code");
+            sb.AppendLine("   - New code is immediately compiled");
+            sb.AppendLine("   - Use when you want to improve or fix existing code");
+            sb.AppendLine("");
+            sb.AppendLine("6. delete_code(name)");
+            sb.AppendLine("   - Remove a saved code snippet");
+            sb.AppendLine("   - Permanently deletes from this session");
+            sb.AppendLine("");
+            sb.AppendLine("7. test_code(code)");
+            sb.AppendLine("   - Validate if code compiles without running it");
+            sb.AppendLine("   - Use before saving to catch syntax errors early");
+            sb.AppendLine("");
+            sb.AppendLine("WORKFLOW TIPS:");
+            sb.AppendLine("- Always test_code() first to catch syntax errors");
+            sb.AppendLine("- Then save_code() to store the code");
+            sb.AppendLine("- Use run_code() to execute and verify results");
+            sb.AppendLine("- Use update_code() to improve or fix code");
+            sb.AppendLine("- Use list_codes() to see what you have");
+
+            return sb.ToString();
         }
 
         /// <summary>
