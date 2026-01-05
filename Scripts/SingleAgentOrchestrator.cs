@@ -116,6 +116,16 @@ namespace xiaohei.Scripts
                                                                                                                                                                                                                                                                                                                                 - 使用System.Diagnostics处理进程
                                                                                                                                                                                                                                                                                                                                 - 完整访问.NET 10 API
 
+                                                                                                                                                                                                                                                                                                                                文件操作重要规则：
+                                                                                                                                                                                                                                                                                                                                1. 你被限制在用户指定的工作目录中。
+                                                                                                                                                                                                                                                                                                                                2. 禁止使用 System.IO.File 或 System.IO.Directory。
+                                                                                                                                                                                                                                                                                                                                3. 必须使用 'SafeIO' 工具类进行文件操作。
+                                                                                                                                                                                                                                                                                                                                   - 写文件：SafeIO.WriteAllText(""filename.txt"", ""content"")
+                                                                                                                                                                                                                                                                                                                                   - 读文件：SafeIO.ReadAllText(""filename.txt"")
+                                                                                                                                                                                                                                                                                                                                   - 删文件：SafeIO.DeleteFile(""filename.txt"")
+                                                                                                                                                                                                                                                                                                                                   - 建目录：SafeIO.CreateDirectory(""foldername"")
+                                                                                                                                                                                                                                                                                                                                4. 路径只需写相对路径（如 ""test.txt""），系统会自动映射到安全目录。
+
                                                                                                                                                                                                                                                                                                                                 你是一个代码生成器。生成并执行代码。
                                                                                                                                                                                                                                                                                                                                 不要仅仅解释能做什么 - 去做它！";
 
@@ -181,6 +191,46 @@ namespace xiaohei.Scripts
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine($"[Error] {ex.Message}");
                 Console.ResetColor();
+            }
+        }
+
+        // New command handling method
+        private void HandleCommand(string input)
+        {
+            var parts = input.Split(' ', 2);
+            var command = parts[0].ToLower();
+            var arg = parts.Length > 1 ? parts[1].Trim() : "";
+
+            switch (command)
+            {
+                case "/exit":
+                    Console.WriteLine("Goodbye!");
+                    Environment.Exit(0);
+                    break;
+
+                case "/cd":
+                case "/workdir":
+                    if (string.IsNullOrWhiteSpace(arg))
+                    {
+                        Console.WriteLine("Error: Please provide a path. Example: /cd D:\\Test");
+                    }
+                    else
+                    {
+                        try { GlobalContext.SetWorkingDirectory(arg); }
+                        catch (Exception ex) { Console.WriteLine($"Set failed: {ex.Message}"); }
+                    }
+                    break;
+
+                case "/help":
+                    Console.WriteLine("Available Commands:");
+                    Console.WriteLine("  /exit           - Exit program");
+                    Console.WriteLine("  /cd <path>      - Set AI working/safe directory (alias: /workdir)");
+                    Console.WriteLine("  /reset          - Clear conversation history (not implemented)");
+                    break;
+
+                default:
+                    Console.WriteLine($"Unknown command: {command}");
+                    break;
             }
         }
 
@@ -283,16 +333,30 @@ namespace xiaohei.Scripts
         private async Task RunConversationLoopAsync(ChatCompletionAgent agent)
         {
             var history = new ChatHistory();
+
+            // Initialize default directory
+            GlobalContext.SetWorkingDirectory(GlobalContext.WorkingDirectory);
+
+            Console.WriteLine("Tip: Type '/help' to see available commands");
             Console.WriteLine("Type 'exit' to quit\n");
 
             while (true)
             {
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.Write("You > ");
+                Console.Write($"You ({GlobalContext.WorkingDirectory}) > ");
                 Console.ResetColor();
 
                 string? input = Console.ReadLine();
-                if (string.IsNullOrWhiteSpace(input) || input.ToLower() == "exit")
+                if (string.IsNullOrWhiteSpace(input)) continue;
+
+                // === Command Mode Interception ===
+                if (input.StartsWith("/"))
+                {
+                    HandleCommand(input);
+                    continue; // Skip AI processing, go to next loop
+                }
+
+                if (input.ToLower() == "exit")
                     break;
 
                 history.AddUserMessage(input);

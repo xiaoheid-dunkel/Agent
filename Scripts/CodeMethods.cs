@@ -55,11 +55,47 @@ namespace xiaohei.Scripts
         public string RunCode(
             [Description("之前保存的代码片段的名称，或要直接执行的C#代码（仅顶级语句）")] string codeOrName)
         {
+            // 1. 获取完整的代码内容（如果是名称则从字典获取，否则直接就是代码）
+            string codeToRun = _codeDictionary.Get(codeOrName) ?? codeOrName;
+
+            // 2. 风险检测与审批
+            if (RequiresApproval(codeToRun))
+            {
+                // 播放提示音（可选）
+                Console.Beep();
+
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("\n==================================================");
+                Console.WriteLine(" [?? 敏感操作审批] AI 请求执行具有潜在风险的代码");
+                Console.WriteLine("==================================================");
+
+                // 显示代码内容（限制长度以免刷屏）
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                string preview = codeToRun.Length > 1000 ? codeToRun.Substring(0, 1000) + "...(剩余部分省略)" : codeToRun;
+                Console.WriteLine(preview);
+
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.WriteLine("\n此代码包含文件系统或进程操作（如 Git/部署）。");
+                Console.Write("是否允许执行？(输入 'y' 允许，其他键拒绝): ");
+
+                // 等待用户输入
+                var input = Console.ReadLine();
+                Console.ResetColor();
+
+                if (input?.Trim().ToLower() != "y")
+                {
+                    Console.WriteLine("[系统] 用户拒绝了执行请求。");
+                    return "错误：用户拒绝了该代码的执行请求。请修改代码或放弃任务。";
+                }
+            }
+
+            // 3. 用户批准或无风险，继续执行
             LogAction($"Executing code: '{codeOrName}' (please wait)...");
             try
             {
-                var code = _codeDictionary.Get(codeOrName);
-                if (code != null)
+                // 如果是已保存的名称，用 Execute 增加计数；否则直接运行
+                var storedCode = _codeDictionary.Get(codeOrName);
+                if (storedCode != null)
                 {
                     return _codeDictionary.Execute(codeOrName);
                 }
@@ -70,6 +106,20 @@ namespace xiaohei.Scripts
             {
                 return $"错误：代码执行失败:\n{ex.Message}";
             }
+        }
+
+        // 辅助方法：检测敏感关键字
+        private bool RequiresApproval(string code)
+        {
+            var sensitiveKeywords = new[] {
+                "System.Diagnostics.Process", "Process.Start",  // 运行程序/CMD/Git
+                "System.IO", "File.", "Directory.",             // 文件读写
+                "WebClient", "HttpClient", "WebRequest",        // 网络请求
+                "registry", "Registry"                          // 注册表操作
+            };
+
+            // 只要代码中包含上述任意关键字，就触发审批
+            return sensitiveKeywords.Any(k => code.Contains(k, StringComparison.OrdinalIgnoreCase));
         }
 
         [KernelFunction("test_code")]

@@ -173,6 +173,9 @@ namespace xiaohei.Scripts
         {
             try
             {
+                // 1. Security Check: Ban unsafe classes
+                CheckSecurity(code);
+
                 var compilation = CreateCompilation(code);
                 var diagnostics = compilation.GetDiagnostics();
 
@@ -228,6 +231,17 @@ namespace xiaohei.Scripts
             }
         }
 
+        private void CheckSecurity(string code)
+        {
+            // Simple keyword check (can be improved with Roslyn SyntaxTree)
+            // Ban direct use of File or Directory classes
+            if (code.Contains("System.IO.File") || code.Contains("System.IO.Directory") || 
+                code.Contains(" File.") || code.Contains(" Directory.")) // Note spaces to avoid false positives like Path or FileInfo
+            {
+                throw new InvalidOperationException("Security Policy Block: Direct use of System.IO.File or Directory is prohibited.\nPlease use 'SafeIO' class instead. Example: SafeIO.WriteAllText(...)");
+            }
+        }
+
         /// <summary>
         /// Create Roslyn compilation from code
         /// </summary>
@@ -253,15 +267,24 @@ namespace xiaohei.Scripts
                 // System.Diagnostics (for Process, File operations, etc.)
                 MetadataReference.CreateFromFile(typeof(System.Diagnostics.Process).Assembly.Location),
 
+                // Fix: Add System.ComponentModel.Component reference (required for Process)
+                MetadataReference.CreateFromFile(typeof(System.ComponentModel.Component).Assembly.Location),
+
+                // Fix: Add System.Runtime reference (required for MarshalByRefObject)
+                MetadataReference.CreateFromFile(System.Reflection.Assembly.Load("System.Runtime").Location),
+
                 // System.IO (for File operations)
                 MetadataReference.CreateFromFile(typeof(System.IO.File).Assembly.Location),
 
                 // System.Collections
                 MetadataReference.CreateFromFile(typeof(System.Collections.Generic.List<>).Assembly.Location),
 
-                // System.Linq.Expressions (for advanced LINQ scenarios)
-                MetadataReference.CreateFromFile(typeof(System.Linq.Expressions.Expression).Assembly.Location),
-            };
+                    // System.Linq.Expressions (for advanced LINQ scenarios)
+                    MetadataReference.CreateFromFile(typeof(System.Linq.Expressions.Expression).Assembly.Location),
+
+                    // Add SafeIO reference
+                    MetadataReference.CreateFromFile(typeof(SafeIO).Assembly.Location),
+                };
 
             var compilation = CSharpCompilation.Create("DynamicCode")
                 .AddSyntaxTrees(syntaxTree)
@@ -309,10 +332,13 @@ namespace xiaohei.Scripts
                     typeof(Enumerable).Assembly,
                     typeof(Console).Assembly,
                     typeof(System.Diagnostics.Process).Assembly,
+                    typeof(System.ComponentModel.Component).Assembly, // Fix: Add Component reference
+                    System.Reflection.Assembly.Load("System.Runtime"), // Fix: Add System.Runtime reference
                     typeof(System.IO.File).Assembly,
-                    typeof(System.Collections.Generic.List<>).Assembly,
-                    typeof(System.Linq.Expressions.Expression).Assembly,
-                };
+                        typeof(System.Collections.Generic.List<>).Assembly,
+                        typeof(System.Linq.Expressions.Expression).Assembly,
+                        typeof(SafeIO).Assembly, // Add SafeIO reference
+                    };
 
                 var task = CSharpScript.RunAsync(
                     code,
