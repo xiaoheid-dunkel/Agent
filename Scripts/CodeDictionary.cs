@@ -207,9 +207,24 @@ namespace xiaohei.Scripts
                 var stopwatch = Stopwatch.StartNew();
                 var globals = new CodeGlobals();
 
+                // Fix: Add all necessary references to match CreateCompilation
+                var references = new[]
+                {
+                    typeof(object).Assembly,
+                    typeof(System.Uri).Assembly,
+                    typeof(Enumerable).Assembly,
+                    typeof(Console).Assembly,
+                    typeof(System.Diagnostics.Process).Assembly,
+                    typeof(System.IO.File).Assembly,
+                    typeof(System.Collections.Generic.List<>).Assembly,
+                    typeof(System.Linq.Expressions.Expression).Assembly,
+                };
+
                 var task = CSharpScript.RunAsync(
                     code,
-                    ScriptOptions.Default.WithReferences(typeof(object).Assembly),
+                    ScriptOptions.Default
+                        .WithReferences(references)
+                        .WithImports("System", "System.IO", "System.Collections.Generic", "System.Linq", "System.Diagnostics"),
                     globals);
 
                 task.Wait(TimeSpan.FromSeconds(30)); // 30 second timeout
@@ -378,12 +393,26 @@ namespace xiaohei.Scripts
 
         public void WriteLine(object? obj = null)
         {
-            _output.Add(obj?.ToString() ?? "");
+            var text = obj?.ToString() ?? "";
+
+            // Real-time console output
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.WriteLine(text);
+            Console.ResetColor();
+
+            _output.Add(text);
         }
 
         public void Print(object? obj)
         {
-            _output.Add(obj?.ToString() ?? "");
+            var text = obj?.ToString() ?? "";
+
+            // Real-time console output
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.WriteLine(text);
+            Console.ResetColor();
+
+            _output.Add(text);
         }
 
         public string GetOutput()

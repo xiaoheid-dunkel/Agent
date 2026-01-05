@@ -20,6 +20,13 @@ namespace xiaohei.Scripts
             _codeDictionary = codeDictionary;
         }
 
+        private void LogAction(string message)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine($"\n[System] {message}");
+            Console.ResetColor();
+        }
+
         // ============================================================================
         // 代码管理函数 - 保存、编译和运行C#代码
         // ============================================================================
@@ -30,6 +37,7 @@ namespace xiaohei.Scripts
             [Description("代码片段的唯一名称")] string name,
             [Description("要保存的C#代码（仅使用顶级语句，不能有class Program或static Main）")] string code)
         {
+            LogAction($"Saving code snippet: '{name}' ...");
             try
             {
                 var validationResult = _codeDictionary.ValidateCode(code);
@@ -47,6 +55,7 @@ namespace xiaohei.Scripts
         public string RunCode(
             [Description("之前保存的代码片段的名称，或要直接执行的C#代码（仅顶级语句）")] string codeOrName)
         {
+            LogAction($"Executing code: '{codeOrName}' (please wait)...");
             try
             {
                 var code = _codeDictionary.Get(codeOrName);
@@ -67,6 +76,7 @@ namespace xiaohei.Scripts
         [Description("测试C#代码是否能编译而不执行它。用于在运行前检查语法和修复编译错误。如果代码无法编译，返回详细的错误消息。")]
         public string TestCode([Description("要测试编译的C#代码")] string code)
         {
+            LogAction("Testing code compilation...");
             try
             {
                 return _codeDictionary.ValidateCode(code);
@@ -81,6 +91,7 @@ namespace xiaohei.Scripts
         [Description("显示所有之前保存的代码片段及其名称。用于查看可用的代码。")]
         public string ListCodes()
         {
+            LogAction("Listing saved codes...");
             var codes = _codeDictionary.GetAll();
             if (codes.Count == 0)
                 return "还没有保存的代码片段";
@@ -92,6 +103,7 @@ namespace xiaohei.Scripts
         [Description("通过名称检索和显示之前保存的代码片段。用于查看或理解现有代码。")]
         public string GetCode([Description("要检索的代码片段的名称")] string name)
         {
+            LogAction($"Retrieving code content: '{name}'...");
             var code = _codeDictionary.Get(name);
             if (code == null)
                 return $"错误：找不到代码'{name}'";
@@ -105,6 +117,7 @@ namespace xiaohei.Scripts
             [Description("要更新的现有代码片段的名称")] string name,
             [Description("用于替换旧代码的新C#代码（仅顶级语句）")] string newCode)
         {
+            LogAction($"Updating code: '{name}'...");
             try
             {
                 _codeDictionary.Update(name, newCode);
@@ -120,6 +133,7 @@ namespace xiaohei.Scripts
         [Description("删除之前保存的代码片段。此操作无法撤销。")]
         public string DeleteCode([Description("要删除的代码片段的名称")] string name)
         {
+            LogAction($"Deleting code: '{name}'...");
             try
             {
                 _codeDictionary.Delete(name);
